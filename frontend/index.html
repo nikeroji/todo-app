@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Мои задачи</title>
+
+  <link rel="stylesheet" href="./static/vendor/tabler/tabler.min.css">
+
+  <style>
+    [hidden] {
+      display: none !important;
+    }
+
+    .task-title,
+    .task-description {
+      overflow-wrap: anywhere;
+    }
+
+    .task-description {
+      white-space: pre-wrap;
+    }
+  </style>
+
+  <script src="./app.js" defer></script>
+</head>
+
+<body>
+  <main class="container-xl py-4">
+    <header class="mb-4">
+      <div class="text-primary fw-bold mb-2">Todo</div>
+      <h1 class="mb-1">Мои задачи</h1>
+      <p class="text-secondary mb-0">
+        Планируйте дела и отмечайте выполненное.
+      </p>
+    </header>
+
+    <div class="row g-3 mb-4">
+      <div class="col-sm-4">
+        <div class="card">
+          <div class="card-body">
+            <div class="subheader">Всего задач</div>
+            <div id="total-count" class="h1 mb-0">—</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-sm-4">
+        <div class="card">
+          <div class="card-body">
+            <div class="subheader">В работе</div>
+            <div id="active-count" class="h1 text-primary mb-0">—</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-sm-4">
+        <div class="card">
+          <div class="card-body">
+            <div class="subheader">Выполнено</div>
+            <div id="completed-count" class="h1 text-success mb-0">—</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="status-message" class="alert" role="alert" hidden></div>
+
+    <div class="row g-4">
+      <section class="col-lg-4" aria-labelledby="form-title">
+        <form id="task-form" class="card">
+          <div class="card-header">
+            <h2 id="form-title" class="card-title">Новая задача</h2>
+          </div>
+
+          <div class="card-body">
+            <input type="hidden" id="task-id">
+
+            <div class="mb-3">
+              <label class="form-label" for="title">Название</label>
+              <input
+                class="form-control"
+                type="text"
+                id="title"
+                name="title"
+                maxlength="200"
+                placeholder="Что нужно сделать?"
+                required
+              >
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label" for="description">
+                Описание — необязательно
+              </label>
+              <textarea
+                class="form-control"
+                id="description"
+                name="description"
+                rows="4"
+                placeholder="Детали задачи"
+              ></textarea>
+            </div>
+
+            <div>
+              <label class="form-label" for="due-date">Завершить до</label>
+              <input
+                class="form-control"
+                type="date"
+                id="due-date"
+                name="due_date"
+              >
+              <div class="form-hint">
+                Необязательно. Можно оставить пустым.
+              </div>
+            </div>
+          </div>
+
+          <div class="card-footer d-flex gap-2 flex-wrap">
+            <button id="save-task" class="btn btn-primary" type="submit">
+              Добавить задачу
+            </button>
+            <button id="cancel-edit" class="btn" type="button" hidden>
+              Отмена
+            </button>
+          </div>
+        </form>
+      </section>
+
+      <section class="col-lg-8" aria-labelledby="list-title">
+        <div class="card">
+          <div class="card-header">
+            <h2 id="list-title" class="card-title">Список задач</h2>
+            <div class="card-actions">
+              <button id="refresh-tasks" class="btn btn-sm" type="button">
+                Обновить
+              </button>
+            </div>
+          </div>
+
+          <div class="card-body">
+            <div id="task-list" aria-live="polite">
+              <p class="text-secondary mb-0">Загрузка задач…</p>
+            </div>
+
+            <div id="empty-state" class="empty" hidden>
+              <p class="empty-title">Пока всё свободно</p>
+              <p class="empty-subtitle text-secondary">
+                Добавьте первую задачу через форму.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <template id="task-template">
+    <article class="card mb-3">
+      <div class="card-body">
+        <div class="d-flex align-items-center gap-2 mb-2">
+          <span class="text-secondary" data-field="id"></span>
+          <span class="badge" data-field="status"></span>
+        </div>
+
+        <h3 class="h3 mb-2 task-title" data-field="title"></h3>
+        <p class="text-secondary task-description"
+           data-field="description"></p>
+
+        <div class="small text-secondary">
+          <div>
+            Создана: <span data-field="created-at"></span>
+          </div>
+          <div>
+            Завершить до: <span data-field="due-date"></span>
+          </div>
+        </div>
+
+        <div class="d-flex gap-2 flex-wrap mt-3">
+          <button class="btn btn-outline-success"
+                  type="button" data-action="toggle">
+            Завершить
+          </button>
+          <button class="btn btn-outline-secondary"
+                  type="button" data-action="edit">
+            Редактировать
+          </button>
+          <button class="btn btn-outline-danger"
+                  type="button" data-action="delete">
+            Удалить
+          </button>
+        </div>
+      </div>
+    </article>
+  </template>
+</body>
+</html>

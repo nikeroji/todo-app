@@ -1,0 +1,201 @@
+name: todo-app
+
+services:
+  tasks_db:
+    image: postgres:17-bookworm
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-tododb}
+      POSTGRES_USER: ${POSTGRES_USER:-todo_user}
+      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./db/init:/docker-entrypoint-initdb.d:ro
+    networks:
+      - app_net
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - pg_isready -h 127.0.0.1 -U $${POSTGRES_USER} -d $${POSTGRES_DB}
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+
+  redis:
+    image: redis:8-alpine
+    command:
+      - redis-server
+      - --save
+      - ""
+      - --appendonly
+      - "no"
+      - --maxmemory
+      - 128mb
+      - --maxmemory-policy
+      - allkeys-lru
+    networks:
+      - app_net
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 5s
+
+  users_db:
+    image: postgres:17-bookworm
+    environment:
+      POSTGRES_DB: ${USERS_DB_NAME:-usersdb}
+      POSTGRES_USER: ${USERS_DB_USER:-users_user}
+      POSTGRES_PASSWORD: "${USERS_DB_PASSWORD:?Set USERS_DB_PASSWORD in .env}"
+    volumes:
+      - users_pgdata:/var/lib/postgresql/data
+    networks:
+      - app_net
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - pg_isready -h 127.0.0.1 -U $${POSTGRES_USER} -d $${POSTGRES_DB}
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+
+  notification_service:
+    image: todo-notifications:lab5
+    build: ./microservices/notification_service
+    restart: unless-stopped
+    environment:
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_PORT: "5672"
+      RABBITMQ_USER: ${RABBITMQ_USER:-todo_app}
+      RABBITMQ_PASSWORD: "${RABBITMQ_PASSWORD:?Set RABBITMQ_PASSWORD in .env}"
+      RABBITMQ_QUEUE: notifications
+      REDIS_HOST: redis
+      REDIS_PORT: "6379"
+      CACHE_TTL: "60"
+    networks:
+      - app_net
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  tasks_service:
+    image: todo-tasks:lab6
+    build: ./microservices/tasks_service
+    environment:
+      DB_HOST: tasks_db
+      DB_PORT: "5432"
+      DB_NAME: ${POSTGRES_DB:-tododb}
+      DB_USER: ${POSTGRES_USER:-todo_user}
+      DB_PASSWORD: "${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}"
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_PORT: "5672"
+      RABBITMQ_USER: ${RABBITMQ_USER:-todo_app}
+      RABBITMQ_PASSWORD: "${RABBITMQ_PASSWORD:?Set RABBITMQ_PASSWORD in .env}"
+      RABBITMQ_QUEUE: notifications
+    networks:
+      - app_net
+    depends_on:
+      tasks_db:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=3)"
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+  users_service:
+    image: todo-users:lab4
+    build: ./microservices/users_service
+    environment:
+      DB_HOST: users_db
+      DB_PORT: "5432"
+      DB_NAME: ${USERS_DB_NAME:-usersdb}
+      DB_USER: ${USERS_DB_USER:-users_user}
+      DB_PASSWORD: "${USERS_DB_PASSWORD:?Set USERS_DB_PASSWORD in .env}"
+    networks:
+      - app_net
+    depends_on:
+      users_db:
+        condition: service_healthy
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/users', timeout=3)"
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+  frontend:
+    image: todo-frontend:lab4
+    build: ./frontend
+    networks:
+      - app_net
+
+  rabbitmq:
+    image: rabbitmq:3-management
+    hostname: rabbitmq
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER:-todo_app}
+      RABBITMQ_DEFAULT_PASS: "${RABBITMQ_PASSWORD:?Set RABBITMQ_PASSWORD in .env}"
+    ports:
+      - "127.0.0.1:15672:15672"
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    networks:
+      - app_net
+    healthcheck:
+      test:
+        - CMD
+        - rabbitmq-diagnostics
+        - -q
+        - check_port_listener
+        - "5672"
+      interval: 15s
+      timeout: 10s
+      retries: 10
+      start_period: 30s
+
+  gateway:
+    image: nginx:stable-alpine
+    ports:
+      - "127.0.0.1:8081:80"
+    volumes:
+      - type: bind
+        source: ./microservices/gateway/nginx.conf
+        target: /etc/nginx/nginx.conf
+        read_only: true
+        bind:
+          create_host_path: false
+    networks:
+      - app_net
+    depends_on:
+      tasks_service:
+        condition: service_healthy
+      users_service:
+        condition: service_healthy
+      frontend:
+        condition: service_started
+        
+
+networks:
+  app_net:
+    driver: bridge
+
+volumes:
+  pgdata:
+  users_pgdata:
+  rabbitmq_data:

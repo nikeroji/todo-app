@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Список задач</title>
+    <link rel="stylesheet" href="{{ url_for('static', path='/style.css') }}">
+</head>
+<body>
+<main class="container">
+    <h1>Список задач</h1>
+
+    <form action="/add" method="post" class="panel">
+        <label for="title">Название задачи</label>
+        <input id="title" name="title" type="text" maxlength="200" required>
+        <label for="description">Описание</label>
+        <textarea id="description" name="description" rows="3"></textarea>
+        <button type="submit">Добавить задачу</button>
+    </form>
+
+    <ul class="tasks">
+        {% for todo in todos %}
+        <li class="task {% if todo.is_completed %}done{% endif %}">
+            <h2>{{ todo.title }}</h2>
+            <p>{{ todo.description or 'Без описания' }}</p>
+            <p class="status">
+                {% if todo.is_completed %}
+                    Выполнена
+                {% else %}
+                    В работе
+                {% endif %}
+            </p>
+            <div class="actions">
+                <form action="/toggle/{{ todo.id }}" method="post">
+                    <button type="submit">
+                        {{ 'Вернуть в работу' if todo.is_completed else 'Завершить' }}
+                    </button>
+                </form>
+                <a href="/edit/{{ todo.id }}">Редактировать</a>
+                <form action="/delete/{{ todo.id }}" method="post">
+                    <button type="submit" class="danger">Удалить</button>
+                </form>
+            </div>
+        </li>
+        {% else %}
+        <li class="empty">Задач пока нет. Добавьте первую.</li>
+        {% endfor %}
+    </ul>
+</main>
+</body>
+</html>

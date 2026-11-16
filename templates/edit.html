@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="ru" data-bs-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Редактирование задачи — Todo</title>
+    <link rel="stylesheet" href="{{ url_for('static', path='/vendor/tabler/tabler.min.css') }}">
+</head>
+<body>
+<div class="page">
+    <header class="navbar">
+        <div class="container-xl">
+            <a href="/" class="navbar-brand">
+                <span class="avatar avatar-sm bg-primary text-white me-2" aria-hidden="true">✓</span>
+                Todo
+            </a>
+            <a href="/" class="btn btn-outline-secondary">К списку задач</a>
+        </div>
+    </header>
+    <main class="page-wrapper">
+        <div class="page-header">
+            <div class="container-xl">
+                <h1 class="page-title">Редактирование задачи</h1>
+                <p class="text-secondary mt-2 mb-0">Измените описание или срок выполнения.</p>
+            </div>
+        </div>
+        <div class="page-body">
+            <div class="container-xl">
+                <div class="row justify-content-center">
+                    <div class="col-12 col-lg-8">
+                        <form action="/edit/{{ todo.id }}" method="post" class="card">
+                            <div class="card-header"><h2 class="card-title">Задача #{{ todo.id }}</h2></div>
+                            <div class="card-body">
+                                <div class="mb-3">
+                                    <label for="title" class="form-label">Название</label>
+                                    <input id="title" name="title" type="text" class="form-control"
+                                           value="{{ todo.title }}" maxlength="200" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="description" class="form-label">Описание</label>
+                                    <textarea id="description" name="description" class="form-control" rows="4">{{ todo.description or '' }}</textarea>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="due_date" class="form-label">Завершить до</label>
+                                    <input id="due_date" name="due_date" type="date" class="form-control"
+                                           value="{{ todo.due_date.isoformat() if todo.due_date else '' }}"
+                                           aria-describedby="due_date_hint">
+                                    <div id="due_date_hint" class="form-hint">Очистите поле, чтобы убрать срок.</div>
+                                </div>
+                                <p class="text-secondary small mb-0">Создана: {{ todo.created_at | local_datetime }}</p>
+                            </div>
+                            <div class="card-footer d-flex flex-wrap gap-2">
+                                <button type="submit" class="btn btn-primary">Сохранить изменения</button>
+                                <a href="/" class="btn btn-outline-secondary">Отмена</a>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+</div>
+</body>
+</html>

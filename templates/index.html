@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="ru" data-bs-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Мои задачи — Todo</title>
+    <link rel="stylesheet"
+          href="{{ url_for('static', path='/vendor/tabler/tabler.min.css') }}">
+</head>
+<body>
+{% set total = todos | length %}
+{% set completed = todos | selectattr('is_completed') | list | length %}
+
+<div class="page">
+    <header class="navbar">
+        <div class="container-xl">
+            <a href="/" class="navbar-brand">
+                <span class="avatar avatar-sm bg-primary text-white me-2"
+                      aria-hidden="true">✓</span>
+                Todo
+            </a>
+            <span class="text-secondary">Личный список задач</span>
+        </div>
+    </header>
+
+    <main class="page-wrapper">
+        <div class="page-header">
+            <div class="container-xl">
+                <h1 class="page-title">Мои задачи</h1>
+                <p class="text-secondary mt-2 mb-0">
+                    Планируйте дела и отмечайте выполненное.
+                </p>
+            </div>
+        </div>
+
+        <div class="page-body">
+            <div class="container-xl">
+                <div class="row g-3 mb-4">
+                    <div class="col-12 col-sm-4">
+                        <div class="card">
+                            <div class="card-body">
+                                <div class="subheader">Всего задач</div>
+                                <div class="h1 mb-0 mt-2">{{ total }}</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-12 col-sm-4">
+                        <div class="card">
+                            <div class="card-body">
+                                <div class="subheader">В работе</div>
+                                <div class="h1 text-primary mb-0 mt-2">
+                                    {{ total - completed }}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-12 col-sm-4">
+                        <div class="card">
+                            <div class="card-body">
+                                <div class="subheader">Выполнено</div>
+                                <div class="h1 text-success mb-0 mt-2">
+                                    {{ completed }}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row g-4">
+                    <div class="col-12 col-lg-4">
+                        <form action="/add" method="post" class="card">
+                            <div class="card-header">
+                                <h2 class="card-title">Новая задача</h2>
+                            </div>
+                            <div class="card-body">
+                                <div class="mb-3">
+                                    <label for="title" class="form-label">
+                                        Название
+                                    </label>
+                                    <input id="title" name="title" type="text"
+                                           class="form-control"
+                                           placeholder="Что нужно сделать?"
+                                           maxlength="200" required>
+                                </div>
+                                <div>
+                                    <label for="description" class="form-label">
+                                        Описание
+                                        <span class="text-secondary fw-normal">
+                                            — необязательно
+                                        </span>
+                                    </label>
+                                    <textarea id="description" name="description"
+                                              class="form-control" rows="4"
+                                              placeholder="Детали задачи"></textarea>
+                                </div>
+                            </div>
+                            <div class="card-body pt-0">
+                                <label for="due_date" class="form-label">Завершить до</label>
+                                <input id="due_date" name="due_date" type="date" class="form-control"
+                                       aria-describedby="due_date_hint">
+                                <div id="due_date_hint" class="form-hint">Необязательно. Можно оставить пустым.</div>
+                            </div>
+                            <div class="card-footer">
+                                <button type="submit" class="btn btn-primary w-100">
+                                    Добавить задачу
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+
+                    <div class="col-12 col-lg-8">
+                        <section class="card" aria-labelledby="tasks-heading">
+                            <div class="card-header">
+                                <h2 id="tasks-heading" class="card-title">
+                                    Список задач
+                                </h2>
+                                <span class="badge bg-primary-lt text-primary ms-auto">
+                                    {{ total }}
+                                </span>
+                            </div>
+
+                            <ul class="list-group list-group-flush">
+                                {% for todo in todos %}
+                                <li class="list-group-item p-4">
+                                    <div class="d-flex flex-wrap gap-2 mb-2">
+                                        <span class="text-secondary">
+                                            #{{ todo.id }}
+                                        </span>
+                                        {% if todo.is_completed %}
+                                        <span class="badge bg-success-lt text-success">
+                                            Выполнена
+                                        </span>
+                                        {% else %}
+                                        <span class="badge bg-primary-lt text-primary">
+                                            В работе
+                                        </span>
+                                        {% endif %}
+                                    </div>
+
+                                    <h3 class="h3 text-break mb-2 {% if todo.is_completed %}text-decoration-line-through text-secondary{% endif %}">
+                                        {{ todo.title }}
+                                    </h3>
+                                    <p class="text-secondary text-break mb-3"
+                                       style="white-space: pre-wrap;">{{ todo.description or 'Без описания' }}</p>
+
+                                    <div class="text-secondary small mb-3">
+                                        <div>Создана: {{ todo.created_at | local_datetime }}</div>
+                                        <div>Завершить до: {{ todo.due_date.strftime('%d.%m.%Y') if todo.due_date else 'Срок не указан' }}</div>
+                                    </div>
+                                    <div class="d-flex flex-wrap gap-2">
+                                        <form action="/toggle/{{ todo.id }}"
+                                              method="post" class="m-0">
+                                            <button type="submit"
+                                                    class="btn btn-sm btn-outline-success">
+                                                {{ 'Вернуть в работу' if todo.is_completed else 'Завершить' }}
+                                            </button>
+                                        </form>
+                                        <a href="/edit/{{ todo.id }}"
+                                           class="btn btn-sm btn-outline-secondary">
+                                            Редактировать
+                                        </a>
+                                        <form action="/delete/{{ todo.id }}"
+                                              method="post" class="m-0">
+                                            <button type="submit"
+                                                    class="btn btn-sm btn-outline-danger">
+                                                Удалить
+                                            </button>
+                                        </form>
+                                    </div>
+                                </li>
+                                {% else %}
+                                <li class="list-group-item">
+                                    <div class="empty">
+                                        <p class="empty-title">Пока всё свободно</p>
+                                        <p class="empty-subtitle text-secondary">
+                                            Добавьте первую задачу через форму.
+                                        </p>
+                                    </div>
+                                </li>
+                                {% endfor %}
+                            </ul>
+                        </section>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+</div>
+</body>
+</html>

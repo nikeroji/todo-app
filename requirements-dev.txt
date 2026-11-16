@@ -1,0 +1,4 @@
+-r microservices/tasks_service/requirements.txt
+
+flake8==7.3.0
+pytest==8.4.2
